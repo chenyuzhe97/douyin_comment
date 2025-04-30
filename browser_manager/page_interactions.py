@@ -1,6 +1,7 @@
 import asyncio
 import random
 from browser_manager.logger import logger
+from playwright.async_api import Page, expect
 
 
 class PageInteractions:
@@ -28,27 +29,30 @@ class PageInteractions:
         except Exception as e:
             logger.error(f"获取视频ID时出现错误: {e}")
             return None
-
     @staticmethod
-    async def jump_to_modal(page):
-        await asyncio.sleep(3)
-        await page.wait_for_selector('.JLxgOO5G div:has-text("多列")', timeout=35000)
-        await page.locator('.JLxgOO5G div:has-text("多列")').click()
-        await page.wait_for_selector(".NA7vT_tM .AMqhOzPC", timeout=35000)
-        logger.info(".AMqhOzPC 元素已找到")
-
-        elements = await page.locator(".NA7vT_tM .AMqhOzPC").all()
-
-        if len(elements) >= 3:
-            await elements[2].click()
-            logger.info("成功点击第三个 .AMqhOzPC 元素")
-            await asyncio.sleep(3)
-            await page.keyboard.press("ArrowDown")
-
-            await asyncio.sleep(2)
-            await PageInteractions.click_second_video_comment_icon(page)
-        else:
-            logger.warning(".AMqhOzPC 元素少于三个，无法点击第三个")
+    async def jump_to_modal(page: Page) -> None:
+        """
+        1. 点击左侧“多列”按钮（用 .JLxgOO5G…）
+        2. 等弹窗列表 .NA7vT_tM 出来后，点第三个 .AMqhOzPC（索引 2）
+        3. 等真正 <video> 元素出现，表示视频已打开
+        """
+        #
+        # # ① 点击“多列”按钮（class 名 + :has-text 双保险）
+        # btn_multi = page.locator('.JLxgOO5G div:has-text("多列")')
+        # await expect(btn_multi).to_be_visible(timeout=35_000)
+        # await btn_multi.click()
+        #
+        # # ② 等弹窗渲染完，拿到所有缩略图容器
+        # await page.wait_for_selector(".NA7vT_tM .AMqhOzPC", timeout=35_000)
+        # all_cards = page.locator(".NA7vT_tM .AMqhOzPC")
+        #
+        # # ▶ 点第三张缩略图
+        # card = all_cards.nth(2)
+        # await card.scroll_into_view_if_needed()
+        # await card.click()
+        #
+        # # ③ 确认真正的视频播放器出现
+        # await page.wait_for_selector("video[src]", timeout=35_000)
 
     @staticmethod
     async def click_second_video_comment_icon(page):

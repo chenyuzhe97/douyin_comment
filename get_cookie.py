@@ -29,69 +29,52 @@ class creator_douyin:
         # 打开抖音主页
         await page.goto("https://www.douyin.com/?recommend=1")
 
+        print("主页已打开")
         # 等待一些时间以确保页面加载
-        await page.wait_for_timeout(2000)  # 等待2秒
-
+        # await page.wait_for_timeout(10000)  # 等待2秒
+        print("页面已经加载")
         # 等待Modal弹窗加载
-        await page.wait_for_selector(".login-mask-enter-done", timeout=self.timeout)
-
+        # await page.wait_for_selector(".login-mask-enter-done", timeout=self.timeout)
+        # print("model弹窗已加载")
         # 等待并点击验证码登录的 Tab
+        # try:
+        #     # 显式等待验证码登录 tab 的 img 元素加载完成，最大等待时间为 `timeout`
+        #     # 2. 切换验证码登录
+        #     await page.wait_for_selector('text=验证码登录', timeout=self.timeout)
+        #     await page.click('text=验证码登录')
+        #
+        #     print("成功点击验证码登录 tab")
+        # except Exception as e:
+        #     print(f"点击验证码登录 tab 失败: {e}")
+        #
+        # # 3. 填写手机号并获取验证码
+        # await page.fill('input[name="normal-input"]', self.phone)
+        # await page.click('span:has-text("获取验证码")')
+
+        await asyncio.get_event_loop().run_in_executor(
+            None,
+            input,
+            "请在浏览器中完成验证码登录后，按回车键继续…"
+        )
+
+        # 然后再等待登录弹窗消失（根据实际面板 ID／class 改一下）
         try:
-            # print(await page.content())
-            # 显式等待验证码登录 tab 的 img 元素加载完成，最大等待时间为 `timeout`
             await page.wait_for_selector(
-                '[aria-label="验证码登录"]', timeout=self.timeout
+                '#douyin_login_comp_flat_panel',  # 或者你看到的登录面板根节点选择器
+                state='hidden',
+                timeout=self.timeout
             )
-            await page.locator('[aria-label="验证码登录"]').click()
-
-            print("成功点击验证码登录 tab")
+            print("登录弹窗已关闭，准备收尾")
         except Exception as e:
-            print(f"点击验证码登录 tab 失败: {e}")
+            print(f"等待弹窗关闭时发生错误: {e}")
 
-        # 填入手机号
-        await page.locator(".web-login-normal-input__input").fill(self.phone)
-
-        # 发送验证码
-        try:
-            await page.wait_for_selector(
-                'span:has-text("获取验证码")', timeout=self.timeout
-            )
-            await page.locator('span:has-text("获取验证码")').click()
-            print("成功点击获取验证码按钮")
-        except Exception as e:
-            print(f"点击获取验证码按钮失败: {e}")
-
-        try:
-            # 等待登录成功
-            try:
-                # 等待直到弹窗关闭
-                await page.wait_for_selector(
-                    ".login-mask-enter-done", state="hidden", timeout=self.timeout
-                )
-                print("登录弹窗已关闭")
-            except Exception as e:
-                print(f"等待弹窗关闭时发生错误: {e}")
-
-            # 获取 Cookie 并保存
-            cookies = await context.cookies()
-            cookie_txt = ""
-            for i in cookies:
-                cookie_txt += i.get("name") + "=" + i.get("value") + "; "
-            try:
-                # 检查 sessionid 是否存在，确认登录成功
-                cookie_txt.index("sessionid")
-                print(self.phone + " ——> 登录成功")
-                await context.storage_state(
-                    path=os.path.join(self.path, "cookie", self.desc)
-                )
-            except ValueError:
-                print(self.phone + " ——> 登录失败，本次操作不保存cookie")
-        except Exception as e:
-            print(self.phone + " ——> 登录失败，本次操作不保存cookie", e)
-        finally:
-            await page.close()
-            await context.close()
-            await browser.close()
+        # 最后保存 cookie／storage state，关闭 context/browser
+        cookies = await context.cookies()
+        # …你的保存逻辑…
+        await context.storage_state(path=os.path.join(self.path, "cookie", self.desc))
+        await page.close()
+        await context.close()
+        await browser.close()
 
     async def main(self):
         async with async_playwright() as playwright:
